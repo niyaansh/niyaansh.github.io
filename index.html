@@ -1826,8 +1826,8 @@
 
   /* ============ WEATHER (random on each visit) ============ */
   (function(){
-    // Weighted pool — equal-ish chance of each weather so snow shows often enough
-    const weighted = ['clear','clear','rain','rain','snow','snow'];
+    // Weather disabled — set to all 'clear' to skip particle generation
+    const weighted = ['clear'];
     const weather  = weighted[Math.floor(Math.random() * weighted.length)];
     const weatherEl = document.getElementById('weather');
     if (!weatherEl) return;

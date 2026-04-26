@@ -1785,6 +1785,9 @@
       <label class="rsvp-label" for="rsvpEmail">Email<span class="star">*</span></label>
       <input id="rsvpEmail" class="rsvp-input" type="email" placeholder="email@example.com" autocomplete="email" />
 
+      <label class="rsvp-label" for="rsvpPhone">Phone<span class="star">*</span></label>
+      <input id="rsvpPhone" class="rsvp-input" type="tel" placeholder="(555) 123-4567" autocomplete="tel" inputmode="tel" />
+
       <div class="rsvp-row2">
         <div>
           <label class="rsvp-label">Total adults<span class="star">*</span></label>
@@ -2145,6 +2148,7 @@
   async function submitRSVP(){
     const name    = document.getElementById('rsvpName').value.trim();
     const email   = document.getElementById('rsvpEmail').value.trim();
+    const phone   = document.getElementById('rsvpPhone').value.trim();
     const comment = document.getElementById('rsvpComment').value.trim();
     const status  = document.getElementById('rsvpStatus');
     const btn     = document.getElementById('rsvpSubmitBtn');
@@ -2155,13 +2159,14 @@
 
     if (!name){ status.className = 'rsvp-status error'; status.textContent = 'Please enter your name.'; return; }
     if (!email || !/^\S+@\S+\.\S+$/.test(email)){ status.className = 'rsvp-status error'; status.textContent = 'Please enter a valid email.'; return; }
+    if (!phone || (phone.replace(/\D/g, '').length < 10)){ status.className = 'rsvp-status error'; status.textContent = 'Please enter a valid phone number.'; return; }
 
     btn.disabled = true;
     status.textContent = 'sending...';
 
     const payload = {
       timestamp: new Date().toISOString(),
-      name, email,
+      name, email, phone,
       attending: rsvpAttending,
       adults: counts.adults,
       kids: counts.kids,
@@ -2184,6 +2189,7 @@
       const body = encodeURIComponent(
         `Name: ${name}\n` +
         `Email: ${email}\n` +
+        `Phone: ${phone}\n` +
         `Adults: ${counts.adults}\n` +
         `Kids: ${counts.kids}\n` +
         (comment ? `Comment: ${comment}\n` : '') +

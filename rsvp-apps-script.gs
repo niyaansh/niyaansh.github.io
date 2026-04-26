@@ -25,19 +25,31 @@ function doPost(e) {
     const sheet = ss.getActiveSheet();
     const sheetUrl = ss.getUrl();
 
-    // Header row — now with Attending column
+    // Header row — original 9 columns. Phone column will be appended at the END
+    // (column 10) by the auto-add block below — this keeps existing sheet data intact.
     if (sheet.getLastRow() === 0) {
       sheet.appendRow(['Timestamp', 'Name', 'Email', 'Attending', 'Adults', 'Kids', 'Total', 'Comment', 'User Agent']);
       sheet.getRange('A1:I1').setFontWeight('bold').setBackground('#ffdca8');
       sheet.setFrozenRows(1);
     }
 
+    // Auto-add the "Phone" column if missing (safe for existing sheets — appends to the right).
+    const lastCol  = sheet.getLastColumn();
+    const headers  = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || '').trim());
+    let phoneCol   = headers.indexOf('Phone') + 1;  // 1-indexed; 0 means missing
+    if (phoneCol === 0) {
+      phoneCol = lastCol + 1;
+      sheet.getRange(1, phoneCol).setValue('Phone').setFontWeight('bold').setBackground('#ffdca8');
+    }
+
     const adults    = Number(data.adults) || 0;
     const kids      = Number(data.kids)   || 0;
     const total     = adults + kids;
     const email     = String(data.email || '').toLowerCase().trim();
+    const phone     = String(data.phone || '').trim();
     const attending = String(data.attending || 'yes').toLowerCase().trim();  // yes / maybe / no
 
+    // Row stays in the original 9-column order. Phone is written separately into phoneCol below.
     const row = [
       data.timestamp || new Date().toISOString(),
       data.name      || '',
@@ -52,12 +64,14 @@ function doPost(e) {
 
     // De-dupe: if this email exists, overwrite instead of appending
     let isUpdate = false;
+    let writtenRowIndex = -1;
     if (email && sheet.getLastRow() > 1) {
       const existingEmails = sheet.getRange(2, 3, sheet.getLastRow() - 1, 1).getValues();
       for (let i = 0; i < existingEmails.length; i++) {
         const existing = String(existingEmails[i][0] || '').toLowerCase().trim();
         if (existing === email) {
           sheet.getRange(i + 2, 1, 1, row.length).setValues([row]);
+          writtenRowIndex = i + 2;
           isUpdate = true;
           break;
         }
@@ -65,6 +79,13 @@ function doPost(e) {
     }
     if (!isUpdate) {
       sheet.appendRow(row);
+      writtenRowIndex = sheet.getLastRow();
+    }
+
+    // Write phone separately into the Phone column (auto-detected above).
+    // This keeps the original 9-column row structure untouched and just adds Phone at column 10+.
+    if (writtenRowIndex > 0) {
+      sheet.getRange(writtenRowIndex, phoneCol).setValue(phone);
     }
 
     // Aggregate stats from the full sheet — ONLY count "yes" toward totals
@@ -112,6 +133,7 @@ function doPost(e) {
         `--- This submission ---\n` +
         `Name: ${data.name || '(blank)'}\n` +
         `Email: ${data.email || '(blank)'}\n` +
+        `Phone: ${phone || '(blank)'}\n` +
         `Attending: ${attending}\n` +
         `Adults: ${adults}\n` +
         `Kids: ${kids}\n` +
@@ -133,6 +155,8 @@ function doPost(e) {
                 <td style="padding:8px 10px;border:1px solid #eee">${escapeHtml(data.name || '')}</td></tr>
             <tr><td style="padding:8px 10px;background:#fff4e0;border:1px solid #eee"><b>Email</b></td>
                 <td style="padding:8px 10px;border:1px solid #eee">${escapeHtml(data.email || '')}</td></tr>
+            <tr><td style="padding:8px 10px;background:#fff4e0;border:1px solid #eee"><b>Phone</b></td>
+                <td style="padding:8px 10px;border:1px solid #eee">${escapeHtml(phone || '')}</td></tr>
             <tr><td style="padding:8px 10px;background:#fff4e0;border:1px solid #eee"><b>Attending</b></td>
                 <td style="padding:8px 10px;border:1px solid #eee"><b>${attBadge}</b></td></tr>
             <tr><td style="padding:8px 10px;background:#fff4e0;border:1px solid #eee"><b>Adults</b></td>
